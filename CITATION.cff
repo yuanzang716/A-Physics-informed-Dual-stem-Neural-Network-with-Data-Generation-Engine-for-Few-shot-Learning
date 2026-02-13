@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite our work."
+title: "A Physics-informed Dual-stem Neural Network with Data Generation Engine for Few-shot Learning"
+authors:
+  - family-names: "Zhang"
+    given-names: "Yuan"
+  - family-names: "Hu"
+    given-names: "ZhengHui"
+keywords:
+  - few-shot learning
+  - inverse problems
+  - diffraction metrology
+license: "MIT"
+
