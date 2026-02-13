@@ -15,6 +15,10 @@ ENV/
 *.pt
 *.onnx
 
+# Allow tracking weights in the Model directory
+!Model/*.pth
+!Model/*.pt
+
 # Data and Results
 data/simulation_dataset/
 results/
