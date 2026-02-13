@@ -177,6 +177,12 @@ python scripts/plot_network_probe_results_nm.py
   - `focal_length_comparison_outputs/tables/source_data_probe_stats_***mm.csv`.
 *Note: Ensure the `seed_roots` in the plotting scripts point to your `results/` directories.*
 
+### How to use:
+1. Download `best_ema_model.pth` for the desired seed and focal length.
+2. Place the weights into the corresponding results folder:
+   `results/seed_124/baseline/best_ema_model.pth`
+3. Run the **Export Mode** (see above) to verify the results.
+
 ## Citation
 If you find this work useful, please cite:
 ```text
