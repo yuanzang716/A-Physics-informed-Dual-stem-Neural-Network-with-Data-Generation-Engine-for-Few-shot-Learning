@@ -222,7 +222,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 class TrainConfig:
     # --- Working / outputs ---
     WORK_DIR = r"/root/autodl-tmp/Diameter_100.2_120mm/cache"
-    # BASE_MODEL_SAVE_DIR 应该从环境变量读取，如果没有则使用默认值
+    # BASE_MODEL_SAVE_DIR
     BASE_MODEL_SAVE_DIR = os.environ.get("BASE_MODEL_SAVE_DIR", r"/root/autodl-tmp/Diameter_100.2_120mm/BaseLine_Epoch50")
 
     # --- Leakage-safe data root ---
@@ -267,25 +267,25 @@ class TrainConfig:
     PHYS_DEBUG_PRINT_FIRST_N_BATCHES = 1  # per epoch in validation
 
     GROUND_TRUTH_DIAMETER = 100.2
-    NUM_EPOCHS = int(os.environ.get("NUM_EPOCHS", "60"))  # 从环境变量读取，默认60
+    NUM_EPOCHS = int(os.environ.get("NUM_EPOCHS", "60")) 
     BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "32"))
     LEARNING_RATE = 1e-4
     WEIGHT_DECAY = 1e-3
     NUM_WORKERS = 8
-    SEED = int(os.environ.get("SEED", "42"))  # 从环境变量读取，默认42
+    SEED = int(os.environ.get("SEED", "42")) 
 
     # --- Sensitivity Analysis Mode ---
     SENSITIVITY_MODE = os.environ.get("SENSITIVITY_MODE", "0").strip() in {"1", "true", "True"}
-    BASELINE_DIR = os.environ.get("BASELINE_DIR", "")  # baseline模型目录（用于sensitivity分析）
-    MAX_BATCHES = int(os.environ.get("MAX_BATCHES", "-1"))  # 限制batch数（-1表示不限制，用于sensitivity快速测试）
+    BASELINE_DIR = os.environ.get("BASELINE_DIR", "")  
+    MAX_BATCHES = int(os.environ.get("MAX_BATCHES", "-1"))
 
     # --- Sensitivity Perturbation Parameters ---
-    SENSITIVITY_COARSE_PERTURB = float(os.environ.get("SENSITIVITY_COARSE_PERTURB", "0.0"))  # Coarse直径扰动（相对值）
-    SENSITIVITY_IMAGE_NOISE = float(os.environ.get("SENSITIVITY_IMAGE_NOISE", "0.0"))  # 图像噪声标准差
-    SENSITIVITY_PARAMS_ZERO = os.environ.get("SENSITIVITY_PARAMS_ZERO", "0").strip() in {"1", "true", "True"}  # 参数置零测试
+    SENSITIVITY_COARSE_PERTURB = float(os.environ.get("SENSITIVITY_COARSE_PERTURB", "0.0"))  
+    SENSITIVITY_IMAGE_NOISE = float(os.environ.get("SENSITIVITY_IMAGE_NOISE", "0.0")) 
+    SENSITIVITY_PARAMS_ZERO = os.environ.get("SENSITIVITY_PARAMS_ZERO", "0").strip() in {"1", "true", "True"}  
 
     # --- Ablation: Data Quantity ---
-    SIM_SAMPLE_COUNT = int(os.environ.get("SIM_SAMPLE_COUNT", "-1"))  # 每个real图像使用多少sim样本（-1=全部）
+    SIM_SAMPLE_COUNT = int(os.environ.get("SIM_SAMPLE_COUNT", "-1"))
 
     # --- Image ---
     RESIZE = 224
@@ -313,11 +313,8 @@ class TrainConfig:
     ENABLE_VICREG = True
     ENABLE_TTA_EMB = True
     ENABLE_GROUP_EMB = True
-    # diff 通道是否输入（real 分支中的 diff(2ch)）
-    # 默认关闭：Baseline仅使用Real+Sim双分支
-    # 设为True时：在Real分支额外引入Diff作为显式残差（实验性功能）
+
     USE_DIFF_INPUT = False
-    # FFT 特征是否输入（对 real / sim / diff 的第2通道）
     USE_FFT_INPUT = True
 
     # --- Residual diameter parameterization ---
@@ -781,9 +778,7 @@ def _optimize_single_image(I_real: np.ndarray, bounds: List[Tuple[float, float]]
         gen[0] += 1
         now = time.time()
 
-        # 控制打印频率：至少每代一次，但也可以加“每隔N秒才打印”避免刷屏
         if (now - last_print_t[0]) >= 2.0 or gen[0] == 1:
-            # 这里不要再额外算 objective（很贵），直接用 convergence + 时间提示即可
             print(f"    [DE] gen={gen[0]:04d}/{maxiter}  conv={convergence:.3e}  elapsed={now - t0:.1f}s",
                   flush=True)
             last_print_t[0] = now
@@ -796,12 +791,12 @@ def _optimize_single_image(I_real: np.ndarray, bounds: List[Tuple[float, float]]
         popsize=popsize,
         tol=0.01,
         workers=DataConfig.N_JOBS,
-        updating='deferred',   # 明确写出来，避免你看到那条 warning
+        updating='deferred',  
         seed=seed,
         polish=True,
         init='latinhypercube',
-        disp=True,             # SciPy 自带每代输出（有时更简略/更频繁）
-        callback=_cb           # 我们自己的“心跳”输出
+        disp=True,             
+        callback=_cb          
     )
 
     p = res.x
@@ -1624,15 +1619,12 @@ def seed_everything(seed=42):
     torch.backends.cudnn.deterministic = False
 
 def clean_runtime_artifacts(config):
-    """清理运行时产生的临时文件（已禁用：太危险，容易误删重要结果）"""
-    # 安全策略：默认禁用清理功能，避免误删训练结果
-    # 如需启用，请设置环境变量 FORCE_CLEAN_ARTIFACTS=1
     force_clean = os.environ.get("FORCE_CLEAN_ARTIFACTS", "0").strip() == "1"
     if not force_clean:
-        print(f"[Clean] 跳过清理（如需清理，请设置 FORCE_CLEAN_ARTIFACTS=1）")
+        print(f"[Clean] Skip cleaning (if cleaning is needed, please set FORCE_CLEAN_ARTIFACTS=1)")
         return
     
-    print(f"[Clean] ⚠️  警告：正在清理实验目录下的旧文件...")
+    print(f"[Clean] Warning: Cleaning up old files in the experiment directory...")
     if not os.path.exists(config.BASE_MODEL_SAVE_DIR):
         return
     cache_abs = os.path.abspath(config.FFT_CACHE_DIR)
@@ -1642,9 +1634,9 @@ def clean_runtime_artifacts(config):
             continue
         for file in files:
             fp = os.path.join(root, file)
-            # 只删除临时文件，不删除关键结果文件
+            # Only delete temporary files, not key result files
             if file.endswith(".csv") or file.endswith(".pth") or file.endswith(".png"):
-                # 额外保护：不删除 best_model.pth, best_ema_model.pth, metrics.csv 等关键文件
+                # Additional protection: Do not delete key files such as best_model.pth, best_ema_model.pth, metrics.csv
                 if file in ["best_model.pth", "best_ema_model.pth", "metrics.csv", "config_snapshot.json", "DONE.txt"]:
                     continue
                 try:
@@ -1652,7 +1644,7 @@ def clean_runtime_artifacts(config):
                     removed_count += 1
                 except:
                     pass
-    print(f"[Clean] 完成，删除了 {removed_count} 个临时文件")
+    print(f"[Clean] Completed, {removed_count} temporary files have been deleted")
 
 def _extract_real_id(fname: str):
     m = re.search(r"\((\d+)\)", fname)
@@ -1897,8 +1889,6 @@ class GradNormBalancer:
         target = (G_avg * (r ** self.alpha)).detach()
 
         gradnorm_loss = (G - target).abs().sum()
-        # We will later backprop loss_gn through the same forward graph for model params.
-        # Keep the graph alive here.
         gradnorm_loss.backward(retain_graph=True)
         self.opt_w.step()
 
@@ -2040,9 +2030,6 @@ def ensure_params5_phys_for_physics(p5_maybe_phys_or_norm: torch.Tensor, ctx: st
         f"[ensure_params5_phys_for_physics] Params are neither within physical RP_RANGE nor normalized to [-1,1]. {ctx}".strip()
     )
 
-
-# Backward-compatible alias (older code may call this name)
-# NOTE: avoid redefining the same function name (would cause recursion).
 ensure_params5_phys_for_physics_compat = ensure_params5_phys_for_physics
 
 def tta_noise_only(tensor, n, noise_level=0.02):
@@ -2253,7 +2240,7 @@ class FFTPrecomputer:
         sim_dir = os.path.join(res_dir, getattr(self.config, 'FFT_SIMDIFF_SUBDIR', 'sim_diff'))
 
         # Resume-friendly: do NOT early-return just because some cache exists.
-        # We always scan and (re)generate missing/corrupted tensors.
+        # Scan and (re)generate missing/corrupted tensors.
         if os.path.exists(real_dir) and os.path.exists(sim_dir):
             print(f"[Precompute] Cache dir exists at {res_dir} (resume mode: will fill missing items).")
 
@@ -2470,10 +2457,10 @@ class DiffSimRealDataset(Dataset):
         diff_pt = self._load_pt(r["diff_pt"])  # (2,H,W)
 
         # -------------------------------
-        # NEW: input channel switches
+        # input channel switches
         # -------------------------------
         if not self.config.USE_FFT_INPUT:
-            # 第 1 通道是 FFT（[spatial, fft]）
+            # Channel 1 is FFT ([spatial, fft])
             real_pt = real_pt.clone()
             sim_pt  = sim_pt.clone()
             diff_pt = diff_pt.clone()
@@ -2527,7 +2514,7 @@ class GroupedBatchSampler(Sampler):
 
 
 # =========================================================
-# 6. Physics Layer (unchanged)
+# 6. Physics Layer
 # =========================================================
 class FraunhoferPhysicsLayer(nn.Module):
     def __init__(self, orig_h, orig_w, crop_pixels, resize_target, wavelength_um, foclength_um, p_size_um):
@@ -2912,8 +2899,8 @@ class DualStemNet(nn.Module):
         return d_um, log_d, z
 
     def forward_sim(self, x_sim2: torch.Tensor, params10: torch.Tensor, coarse1: torch.Tensor, return_stem_pool: bool = False):
-        # 单分支（single-branch）ablation：让 sim 分支也走 stem_real（通过pad到4ch）
-        # 默认关闭，仅当环境变量 FORCE_SINGLE_BRANCH=1 时启用
+        # Single-branch ablation: Make the sim branch also go through stem_real (by padding to 4 channels)
+        # Disabled by default, only enabled when the environment variable FORCE_SINGLE_BRANCH=1 is set
         force_single = os.environ.get("FORCE_SINGLE_BRANCH", "0").strip() in {"1", "true", "True"}
         if force_single:
             x_sim4 = torch.cat([x_sim2, torch.zeros_like(x_sim2)], dim=1)  # 2ch -> 4ch
@@ -2937,7 +2924,7 @@ class DualStemNet(nn.Module):
 # 8. Weak + Pair losses
 # =========================================================
 def weak_guidance_rel(pred, coarse, tolerance=0.1):
-    # Continuous, relative-normalized deviation outside band (requirement #1)
+    # Continuous, relative-normalized deviation outside band
     ratio = pred / coarse.clamp_min(1e-6)
     lower = 1.0 - tolerance
     upper = 1.0 + tolerance
@@ -3002,7 +2989,7 @@ def validate_unified(model, physics, val_loader, config, adv_phys_loss):
     all_preds_err = []
     all_preds = []
 
-    # 简化输出：不显示验证进度条（与训练循环一致）
+    
     phys_debug_batches = 0
     with torch.no_grad():
         for fnames, full_input, sim_pt, rp, sp, coarse, target_a, is_paired, real_idx in val_loader:
@@ -3068,7 +3055,7 @@ def validate_unified(model, physics, val_loader, config, adv_phys_loss):
                     preds_by_realid[rid].append(val)
 
             if config.ENABLE_PHYS:
-                # physics compares normalized intensities inside AdvancedPhysicsLoss (requirement #8/#9)
+                # physics compares normalized intensities inside AdvancedPhysicsLoss
                 with torch.cuda.amp.autocast(enabled=False):
                     img_pred = physics(d_final.float(), rp_phys.float(), target_real_img=full_input[:, 0:1].float())
                 if getattr(config, 'ENABLE_PHYS_DEBUG_PRINT', False) and phys_debug_batches < getattr(config, 'PHYS_DEBUG_PRINT_FIRST_N_BATCHES', 1):
@@ -3117,7 +3104,7 @@ def validate_unified(model, physics, val_loader, config, adv_phys_loss):
     # helps select models with better pair consistency (no GT dependency)
     w_pair_eff = float(config.SCORE_W_PAIR) * float(getattr(config, "SCORE_W_PAIR_BOOST", 1.0))
 
-    # Continuous, relative-normalized selection score (no hard jumps) (requirement #1)
+    # Continuous, relative-normalized selection score
     # NOTE: No GT information used - this is an unsupervised measurement system
     selection_score = (
         config.SCORE_W_PHYS * avg_phys
@@ -3227,7 +3214,7 @@ def dryrun_check(config):
 
 
 # =========================================================
-# 13. Debug visualization (kept minimal)
+# 13. Debug visualization
 # =========================================================
 def save_debug_visualization(model, physics, loader, config, epoch, out_dir):
     model.eval()
@@ -3249,9 +3236,9 @@ def save_debug_visualization(model, physics, loader, config, epoch, out_dir):
             img_pred = physics(d_um, rp_phys, target_real_img=full_input[:, 0:1])
             real_img = full_input[0, 0:1, :, :]
             pred_img = img_pred[0, :, :, :]
-            # 在输出debug_vis时，将sim图像翻转一次以匹配real图像的显示方向
-            # 注意：损失计算时使用的是翻转后的图像（physics内部已翻转），这是正确的
-            # 这里只是为了debug_vis显示时方向一致
+            # When outputting debug_vis, flip the sim image once to match the display direction of the real image
+            # Note: The flipped image is used in loss calculation (it has been flipped internally by physics), which is correct
+            # This is just to make the directions consistent during debug_vis display
             pred_img_flipped_for_display = torch.flip(pred_img, dims=[1])
             combined = torch.cat([real_img, pred_img_flipped_for_display], dim=2)
             save_path = os.path.join(out_dir, f"epoch_{epoch}_pred_{d_um[0].item():.2f}um.png")
@@ -3581,15 +3568,14 @@ def ensure_main_required_artifacts(config: 'TrainConfig', *, attempt: int = 1) -
                     run_generator(df_train)
     except Exception as e:
         print(f"[AutoRepair] Data pipeline repair failed: {e!r}")
-        # don't raise here; main will decide whether it can proceed
 
-    # Ensure FFT cache is present/healthy (incremental + atomic in latest version)
+    # Ensure FFT cache is present/healthy
     try:
         FFTPrecomputer(config).run()
     except Exception as e:
         print(f"[AutoRepair] FFT cache repair failed: {e!r}")
 # =========================================================
-# 14. Main Loop (rewritten per requirements)
+# 14. Main Loop
 # =========================================================
 def main(config: TrainConfig):
     # Best-effort auto-repair of required artifacts before any dataset checks.
@@ -3597,9 +3583,9 @@ def main(config: TrainConfig):
     dryrun_check(config)
     clean_runtime_artifacts(config)
     seed_everything(config.SEED)
-    # 确保输出目录存在（由run_all_experiments.py通过环境变量传递）
+    # Ensure that the output directory exists (passed by run_all_experiments.py through environment variables)
     os.makedirs(config.BASE_MODEL_SAVE_DIR, exist_ok=True)
-    print(f"[Main] 模型保存目录: {config.BASE_MODEL_SAVE_DIR}")
+    print(f"[Main] Model save directory: {config.BASE_MODEL_SAVE_DIR}")
 
     run_stamp = time.strftime("%Y%m%d_%H%M%S")
     debug_root = os.path.join(config.BASE_MODEL_SAVE_DIR, "debug_vis")
@@ -3701,7 +3687,7 @@ def main(config: TrainConfig):
         else:
             run_variant = "baseline"
 
-    # 打印新策略配置信息（移除过时的pcgrad/gradnorm，只显示新策略相关配置）
+    # Print policy configuration information
     strategy_info = []
     strategy_info.append(f"variant={run_variant}")
     if getattr(config, 'EARLY_PAIR_ONLY_EPOCHS', 0) > 0:
@@ -3720,32 +3706,32 @@ def main(config: TrainConfig):
         strategy_info.append(f"adaptive_pair_boost")
     strategy_info.append(f"amp={'on' if use_amp else ('fwd' if use_amp_fwd_only else 'off')}")
     
-    print("新策略配置 | " + " | ".join(strategy_info))
+    print("Strategy configuration | " + " | ".join(strategy_info))
 
-    # Sensitivity模式：从baseline加载模型权重
+    # Sensitivity mode: Load model weights from the baseline
     if config.SENSITIVITY_MODE:
         if not config.BASELINE_DIR or not os.path.exists(config.BASELINE_DIR):
-            raise ValueError(f"Sensitivity模式需要BASELINE_DIR，但目录不存在: {config.BASELINE_DIR}")
+            raise ValueError(f"The Sensitivity mode requires BASELINE_DIR, but the directory does not exist: {config.BASELINE_DIR}")
         
         baseline_model_path = os.path.join(config.BASELINE_DIR, "best_ema_model.pth")
         if not os.path.exists(baseline_model_path):
             baseline_model_path = os.path.join(config.BASELINE_DIR, "best_model.pth")
         
         if os.path.exists(baseline_model_path):
-            print(f"[Sensitivity] 从baseline加载模型: {baseline_model_path}")
+            print(f"[Sensitivity] Load the model from baseline: {baseline_model_path}")
             checkpoint = torch.load(baseline_model_path, map_location='cuda')
             model.load_state_dict(checkpoint, strict=False)
-            print(f"[Sensitivity] 模型加载完成")
+            print(f"[Sensitivity] Model loading completed")
             
-            # 打印扰动参数
+            # Print the disturbance parameter
             if config.SENSITIVITY_COARSE_PERTURB != 0.0:
-                print(f"[Sensitivity] Coarse直径扰动: {config.SENSITIVITY_COARSE_PERTURB*100:.1f}%")
+                print(f"[Sensitivity] Coarse diameter perturbation: {config.SENSITIVITY_COARSE_PERTURB*100:.1f}%")
             if config.SENSITIVITY_IMAGE_NOISE > 0.0:
-                print(f"[Sensitivity] 图像噪声: std={config.SENSITIVITY_IMAGE_NOISE}")
+                print(f"[Sensitivity] Image noise: std={config.SENSITIVITY_IMAGE_NOISE}")
             if config.SENSITIVITY_PARAMS_ZERO:
-                print(f"[Sensitivity] 参数置零模式")
+                print(f"[Sensitivity] parameter zeroing mode")
         else:
-            raise FileNotFoundError(f"Baseline模型文件不存在: {baseline_model_path}")
+            raise FileNotFoundError(f"Baseline model file does not exist: {baseline_model_path}")
 
     sched = build_warmup_cosine_scheduler(opt, config.NUM_EPOCHS)
     scaler = torch.amp.GradScaler('cuda') if use_amp else None
@@ -3782,19 +3768,18 @@ def main(config: TrainConfig):
         w_tta = get_dynamic_weight(epoch, config.W_TTA_START, config.W_TTA_END, config.NUM_EPOCHS)
         w_grp = get_dynamic_weight(epoch, config.W_GROUP_START, config.W_GROUP_END, config.NUM_EPOCHS)
 
-        # 简化输出：不显示 tqdm 进度条
         epoch_start_time = time.time()
         if epoch == 1:
             if config.SENSITIVITY_MODE:
-                print(f"[Sensitivity] 开始评估，共 {config.NUM_EPOCHS} 个 epoch")
+                print(f"[Sensitivity] Evaluation starts, with a total of {config.NUM_EPOCHS} epochs")
                 if config.MAX_BATCHES > 0:
-                    print(f"[Sensitivity] 限制每个epoch最多 {config.MAX_BATCHES} steps (batches), batch_size={config.BATCH_SIZE}")
+                    print(f"[Sensitivity] Limit each epoch to a maximum of {config.MAX_BATCHES} steps (batches), with batch_size={config.BATCH_SIZE}")
             else:
-                print(f"开始训练，共 {config.NUM_EPOCHS} 个 epoch，训练中...")
+                print(f"Start training, with a total of {config.NUM_EPOCHS} epochs, training in progress...")
         
         batch_count = 0
         for fnames, full_input, sim_pt, rp, sp, coarse, target_a, is_paired, real_idx in train_loader:
-            # Sensitivity模式：限制batch数
+            # Sensitivity mode: limit the number of batches
             if config.SENSITIVITY_MODE and config.MAX_BATCHES > 0:
                 if batch_count >= config.MAX_BATCHES:
                     break
@@ -3808,7 +3793,7 @@ def main(config: TrainConfig):
             is_paired = is_paired.cuda().view(-1)
             real_idx = real_idx.cuda()
             
-            # Sensitivity模式：应用扰动
+            # Sensitivity mode: Apply perturbation
             if config.SENSITIVITY_MODE:
                 if config.SENSITIVITY_COARSE_PERTURB != 0.0:
                     coarse = coarse * (1.0 + config.SENSITIVITY_COARSE_PERTURB)
@@ -3830,7 +3815,7 @@ def main(config: TrainConfig):
                 sp_n = normalize_params5(sp).to(rp_n.device)
                 params = torch.cat([rp_n, sp_n], dim=1)
 
-                # branch inputs (requirement #3)
+                # branch inputs
                 x_real4 = torch.cat([full_input[:, 0:2], full_input[:, 4:6]], dim=1)  # real+diff (4ch)
                 x_sim2 = sim_pt  # sim (2ch)
 
@@ -3839,7 +3824,6 @@ def main(config: TrainConfig):
                 # Determine if we should enable other losses based on pair-only mode and conditional enable
                 # Early epoch pair-only mode: completely disable other losses in first few epochs
                 # This prevents phys/weak from interfering with pair learning when pair loss is already low
-                # Based on observation: epoch1 pairloss=0.027 (good), epoch2 jumps to 0.047 (bad) when other losses kick in
                 early_pair_only = EARLY_PAIR_ONLY_EPOCHS > 0 and epoch <= EARLY_PAIR_ONLY_EPOCHS
                 
                 # Get loss weight scales (with pair loss history for conditional enable)
@@ -3851,18 +3835,18 @@ def main(config: TrainConfig):
                 enable_other_losses = (scales.get('phys', 1.0) > 1e-6 or scales.get('weak', 1.0) > 1e-6 or 
                                       scales.get('vic', 1.0) > 1e-6)
                 
-                # PairCons only for paired samples (requirement #4)
+                # PairCons only for paired samples
                 if config.ENABLE_PAIRCONS:
                     L_pair = pair_consistency_loss_logd(log_d, target_a.squeeze(1), is_paired)
                 else:
                     L_pair = torch.tensor(0.0, device='cuda', requires_grad=True)
 
-                # Weak guidance (continuous + relative) (requirement #1)
+                # Weak guidance (continuous + relative)
                 L_weak = torch.tensor(0.0, device='cuda')
                 if config.ENABLE_WEAK and enable_other_losses and scales.get('weak', 0.0) > 1e-6:
                     L_weak = weak_guidance_rel(d_um, coarse, config.WEAK_TOLERANCE)
 
-                # Physics (normalized + low-freq band) (requirement #8/#9)
+                # Physics (normalized + low-freq band)
                 # Use reduced phys weight for bad seeds if configured
                 w_phys_base = float(getattr(config, "W_PHYS_REDUCED", config.W_PHYS))
                 L_phys = torch.tensor(0.0, device='cuda')
@@ -3871,7 +3855,7 @@ def main(config: TrainConfig):
                     img_pred = physics(d_um, rp_phys, target_real_img=full_input[:, 0:1])
                     L_phys, l_corr, l_fft, l_grad = adv_phys_loss(img_pred, full_input[:, 0:1])
 
-                # VICReg alignment (anti-collapse) (requirement #2/#3)
+                # VICReg alignment (anti-collapse)
                 L_vic = torch.tensor(0.0, device='cuda')
                 vic_inv = torch.tensor(0.0, device='cuda')
                 vic_var = torch.tensor(0.0, device='cuda')
@@ -3887,7 +3871,7 @@ def main(config: TrainConfig):
                     return_components=True
                 )
 
-                # TTA / Group on embedding only, with decay (requirement #5)
+                # TTA / Group on embedding only, with decay
                 L_tta = torch.tensor(0.0, device='cuda')
                 if config.ENABLE_TTA_EMB and config.TTA_NUM_TRAIN > 1 and w_tta > 1e-6 and enable_other_losses and scales.get('tta', 0.0) > 1e-6:
                     zs = []
@@ -3958,7 +3942,7 @@ def main(config: TrainConfig):
 
             opt.zero_grad(set_to_none=True)
             # Skip backward if loss has no gradient (e.g., no paired samples in pair-only mode)
-            # Sensitivity模式：跳过训练，只做评估
+            # Sensitivity mode: Skip training and only perform evaluation
             skip_backward = config.SENSITIVITY_MODE or ((early_pair_only or not enable_other_losses) and (is_paired.sum() == 0 or not loss.requires_grad or (isinstance(loss, torch.Tensor) and loss.item() == 0.0 and not loss.requires_grad)))
             
             if not skip_backward:
@@ -4086,7 +4070,6 @@ def main(config: TrainConfig):
         ema_pred_mean = float(val_ema_metrics.get('val_pred_mean', float('nan')))
         ema_pred_bias = (ema_pred_mean - gt_d) if (not math.isnan(ema_pred_mean) and not math.isnan(gt_d)) else float('nan')
         
-        # 简洁的 epoch 总结输出
         print(
             f"Ep {epoch:3d}/{config.NUM_EPOCHS} | "
             f"Loss={avg_train.get('loss',0.0):.4f} | "
