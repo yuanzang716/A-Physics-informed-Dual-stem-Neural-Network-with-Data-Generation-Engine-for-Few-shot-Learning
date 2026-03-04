@@ -53,8 +53,6 @@ def set_pub_style():
 
 
 PALETTE = {
-    # Okabe–Ito colorblind-safe palette (Nature Methods-friendly)
-    # https://jfly.uni-koeln.de/color/
     'blue': '#0072B2',        # blue
     'blue_light': '#56B4E9',  # sky blue
     'orange': '#D55E00',      # vermillion (use for 120mm)
@@ -323,7 +321,6 @@ def _plot_ablation(ax, df_ab: pd.DataFrame, title: str):
     base_val_75 = float(baseline75['rel_err_ema_pct'].iloc[0]) if not baseline75.empty else None
     base_val_120 = float(baseline120['rel_err_ema_pct'].iloc[0]) if not baseline120.empty else None
 
-    # --- Grouped label design (Nature Methods-ish): group headers + spacing ---
     GROUPS: List[Tuple[str, List[str]]] = [
         ('Training schedule', [
             'E00_baseline',
