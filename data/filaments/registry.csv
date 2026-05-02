@@ -1,0 +1,3 @@
+filament_id,legacy_alias,nominal_diameter_um,reference_diameter_um,notes,status
+FIL001,Diameter_100.2_75mm,100.2,100.2,"Development filament (legacy 100.2um, 75mm focal)",active
+FIL002,Diameter_100.0_75mm,100.0,100.0,"External-validation filament (legacy 100.0um, 75mm focal)",active
