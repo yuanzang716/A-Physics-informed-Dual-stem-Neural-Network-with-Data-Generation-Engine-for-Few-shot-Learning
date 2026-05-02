@@ -1,24 +1,24 @@
-# 衍射式细丝测量：少样本逆问题计算工作流
+# 衍射式灯丝测量：少样本逆问题计算工作流
 
 本仓库提供论文的完整代码与数据：
 
-> **面向标签稀缺与稀疏数据逆问题的具备数据生成引擎的物理信息双分支神经网络**
+> **面向结构化仿真-实测失配的少样本逆问题软件支持计算工作流：衍射式灯丝测量验证**
 >
 > Yuan Zhang, Lin Chen, MingYang Li, Jiao Zhao, JiaHao Han, Qiang Lin, Bin Wu, ZhengHui Hu
 >
-> 2026
+> *Computer Physics Communications*, 2026
 
 ---
 
 ## 概述
 
-本仓库实现了物理信息双流网络（PI-DSN）配合实测引导数据增强（MDGA）的完整可复现方案，用于少样本逆问题。该方法仅需每个焦距 8～10 张真实测量即可从弗朗霍夫衍射图样估计细丝直径。
+本仓库实现了物理信息双流网络（PI-DSN）配合实测引导数据增强（MDGA）的完整可复现方案，用于少样本逆问题。该方法仅需每个焦距 8～10 张真实测量即可从弗朗霍夫衍射图样估计灯丝直径。
 
 **核心组件：**
 - 四阶段训练流程（粗估计、仿真库生成、PI-DSN 训练、无标签检查点筛选）
 - 自适应加权的物理信息损失函数
 - 无需真值标签的 EMA 检查点筛选机制
-- 跨细丝泛化能力（FIL001 → FIL002）
+- 跨灯丝泛化能力（FIL001 → FIL002）
 
 ---
 
@@ -44,7 +44,7 @@ publish/
 │   ├── FIL002/
 │   │   ├── focal_75mm/raw/               # 5 张 BMP 图像
 │   │   └── focal_120mm/raw/              # 9 张 BMP 图像
-│   ├── registry.csv                       # 细丝元数据注册表
+│   ├── registry.csv                       # 灯丝元数据注册表
 │   └── migration_map.csv                  # 数据迁移映射表
 │
 ├── weights/                               # 预训练 EMA 模型权重
@@ -59,14 +59,18 @@ publish/
 ├── src/                                   # 核心源代码
 │   ├── filament_layout.py                 # 集中式路径配置
 │   ├── bootstrap_filament_layout.py       # 路径解析引导脚本
-│   ├── Code_75/                           # 75mm 焦距流程
+│   ├── DE_1D_fit/                      # 阶段一：粗估计（MATLAB）
+│   │   ├── DE.m                        # DE 优化主程序
+│   │   ├── calculate.m                 # 弗朗霍夫衍射仿真
+│   │   └── obj.m                       # 目标函数（MSE）
+│   ├── Code_75/                           # 75mm 焦距流程（Python）
 │   │   ├── core/main_75.py              # 核心训练模块
 │   │   ├── experiments/
 │   │   │   ├── run_all_experiments.py     # 主入口（四阶段流程）
 │   │   │   ├── ablation.py              # 消融实验
 │   │   │   └── sensitivity.py            # 敏感度分析
 │   │   └── analysis/
-│   │       └── analyze_probe_stats.py     # 探测统计分析
+│   │       └── analyze_probe_stats.py     # 探测统计分敄
 │   └── Code_120/                          # 120mm 焦距流程
 │       └── （结构与 Code_75/ 相同）
 │
@@ -151,10 +155,12 @@ python run_all_experiments.py
 
 入口脚本为 `run_all_experiments.py`，自动编排四个阶段：
 
-### 阶段一：粗估计（FFT + 差分进化）
+### 阶段一：粗估计（MATLAB + FFT + 差分进化）
+- **语言：** MATLAB（需要 Wavelet Toolbox）
+- **文件：** `src/DE_1D_fit/DE.m`、`calculate.m`、`obj.m`
 - 从衍射图样的 FFT 中提取初始直径估计
 - 通过差分进化（DE）优化进一步精化
-- 输出：粗估计参数
+- 输出：粗估计参数（`optimized_params.csv`）
 
 ### 阶段二：仿真库生成（拉丁超立方采样）
 - 使用 LHS 在参数空间内生成合成衍射图样
@@ -198,7 +204,7 @@ python run_all_experiments.py
 cd scripts
 python fft_analysis.py
 ```
-计算所有细丝的 FFT 粗直径估计值。
+计算所有灯丝的 FFT 粗直径估计值。
 
 ### 图 1：参数耦合分析
 ```bash
@@ -232,9 +238,9 @@ python plot_network_probe_results_nm.py
 
 ---
 
-## 跨细丝泛化（FIL002）
+## 跨灯丝泛化（FIL002）
 
-无需从零训练即可在新细丝（FIL002）上评估：
+无需从零训练即可在新灯丝（FIL002）上评估：
 
 ```bash
 export FILAMENT_PROJECT_ROOT="/path/to/this/publish"
@@ -255,7 +261,7 @@ python run_all_experiments.py
 
 ## 预训练权重
 
-| 文件名 | 细丝 | 焦距 | 随机种子 | 大小 |
+| 文件名 | 灯丝 | 焦距 | 随机种子 | 大小 |
 |--------|------|------|----------|------|
 | `FIL001_75mm_seed124_ema.pth` | FIL001 | 75 mm | 124 | ~50 MB |
 | `FIL001_75mm_seed212_ema.pth` | FIL001 | 75 mm | 212 | ~50 MB |
@@ -279,7 +285,7 @@ EMA 与标准权重的区别详见 [weights/README.md](weights/README.md)。
 | FIL002 | 75 mm | 5 张 | BMP |
 | FIL002 | 120 mm | 9 张 | BMP |
 
-存放于 `data/filaments/`。这些是来自真实细丝样本的原始未处理衍射图样图像。
+存放于 `data/filaments/`。这些是来自真实灯丝样本的原始未处理衍射图样图像。
 
 ---
 
@@ -313,7 +319,7 @@ python verify_paths.py
 答：训练专为 GPU（CUDA）设计，CPU 训练在技术上可行但极慢，不推荐使用。预训练模型的评估可在 CPU 上运行。
 
 **问：训练需要多长时间？**
-答：依赖数据量和每个图像对应生成的模拟数据数量决定。
+答：在单块 GPU（如 RTX 3090）上，完整四阶段流程每个焦距每个种子约需 1～2 小时。
 
 **问：`ALLOW_TRAIN=0` 的作用是什么？**
 答：跳过训练阶段，仅使用已有检查点进行评估。设为 `ALLOW_TRAIN=1` 可从零开始训练。
@@ -343,11 +349,12 @@ python verify_paths.py
 
 ```bibtex
 @article{zhang2026workflow,
-  title={A Physics-informed Dual-stem Neural Network with Data Generation Engine for Label-scarce and
-Sparse-data Inverse Problems},
+  title={A Software-Supported Computational Workflow for Few-shot Inverse Problems
+         under Structured Simulation-to-Measurement Mismatch:
+         Validation in Diffraction-Based Filament Metrology},
   author={Zhang, Yuan and Chen, Lin and Li, MingYang and Zhao, Jiao
           and Han, JiaHao and Lin, Qiang and Wu, Bin and Hu, ZhengHui},
-  journal={},
+  journal={Computer Physics Communications},
   year={2026}
 }
 ```

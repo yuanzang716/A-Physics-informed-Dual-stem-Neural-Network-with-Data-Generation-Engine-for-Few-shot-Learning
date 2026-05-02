@@ -2,11 +2,11 @@
 
 Code and data for the paper:
 
-> **A Physics-informed Dual-Stream Neural Network with Data Generation Engine for Label-scarce and Sparse-data Inverse Problems**
+> **A Software-Supported Computational Workflow for Few-shot Inverse Problems under Structured Simulation-to-Measurement Mismatch: Validation in Diffraction-Based Filament Metrology**
 >
-> Yuan Zhang, Jiao Zhao, Lin Chen, MingYang Li,  JiaHao Han, Qiang Lin, Bin Wu, ZhengHui Hu
+> Yuan Zhang, Lin Chen, MingYang Li, Jiao Zhao, JiaHao Han, Qiang Lin, Bin Wu, ZhengHui Hu
 >
-> 2026
+> *Computer Physics Communications*, 2026
 
 ---
 
@@ -58,7 +58,11 @@ publish/
 ├── src/                                   # Core source code
 │   ├── filament_layout.py                 # Centralized path configuration
 │   ├── bootstrap_filament_layout.py       # Bootstrap path resolver
-│   ├── Code_75/                           # 75mm focal length pipeline
+│   ├── DE_1D_fit/                        # Stage 1: Coarse fitting (MATLAB)
+│   │   ├── DE.m                        # DE optimization entry point
+│   │   ├── calculate.m                 # Fraunhofer diffraction simulation
+│   │   └── obj.m                       # Objective function (MSE)
+│   ├── Code_75/                          # 75mm focal length pipeline (Python)
 │   │   ├── core/main_75.py               # Core training module
 │   │   ├── experiments/
 │   │   │   ├── run_all_experiments.py     # Main entry point (4-stage pipeline)
@@ -150,7 +154,14 @@ This loads the pre-trained EMA weights and runs evaluation without training.
 
 The entry point is `run_all_experiments.py`, which orchestrates four stages automatically:
 
-### Stage 1: Coarse Fitting (FFT + Differential Evolution)
+### Stage 1: Coarse Fitting (MATLAB: FFT + Differential Evolution)
+- **Language:** MATLAB (requires Wavelet Toolbox)
+- **Files:** `src/DE_1D_fit/DE.m`, `calculate.m`, `obj.m`
+- Extracts initial diameter estimate from diffraction pattern FFT
+- Refines via Differential Evolution (DE) optimization
+- Output: coarse parameter estimates (`optimized_params.csv`)
+
+### Stage 2: Simulation Bank Generation (Latin Hypercube Sampling)
 - Extracts initial diameter estimate from diffraction pattern FFT
 - Refines via Differential Evolution (DE) optimization
 - Output: coarse parameter estimates
@@ -311,7 +322,7 @@ A: EMA weights are exponentially averaged model parameters that provide smoother
 A: Training is designed for GPU (CUDA). CPU training is technically possible but extremely slow and not recommended. Evaluation of pre-trained models can run on CPU.
 
 **Q: How long does training take?**
-A: It depends on the amount of data and the number of simulated data generated for each image.
+A: On a single GPU (e.g., RTX 3090), the full pipeline (all 4 stages) takes approximately 1--2 hours per focal length per seed.
 
 **Q: What does `ALLOW_TRAIN=0` do?**
 A: It skips the training stage and only runs evaluation using existing checkpoints. Set `ALLOW_TRAIN=1` to enable training from scratch.
@@ -341,11 +352,12 @@ If you use this code or data, please cite:
 
 ```bibtex
 @article{zhang2026workflow,
-  title={A Physics-informed Dual-stem Neural Network with Data Generation Engine for Label-scarce and
-Sparse-data Inverse Problems},
+  title={A Software-Supported Computational Workflow for Few-shot Inverse Problems 
+         under Structured Simulation-to-Measurement Mismatch: 
+         Validation in Diffraction-Based Filament Metrology},
   author={Zhang, Yuan and Chen, Lin and Li, MingYang and Zhao, Jiao 
           and Han, JiaHao and Lin, Qiang and Wu, Bin and Hu, ZhengHui},
-  journal={},
+  journal={Computer Physics Communications},
   year={2026}
 }
 ```
